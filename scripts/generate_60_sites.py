@@ -1,28 +1,33 @@
 import os
-import google.generativeai as genai
 import time
+from google import genai
 
-# カギの設定
-genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+# 1. 最新のクライアント設定
+client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 
-# 2026年の標準モデル（画面で見えている名前に合わせています）
-MODEL_NAME = 'gemini-2.0-flash' 
-model = genai.GenerativeModel(MODEL_NAME)
+# 無料枠で最も安定しているモデルを指定
+MODEL_ID = "gemini-1.5-flash" 
 
 ages = ["10s", "20s", "30s", "40s", "50s", "60s"]
 genders = ["male", "female"]
 themes = ["finance", "law", "admin", "politics", "lifestyle"]
 
 def generate(age, gender, theme):
-    print(f"Working on: {age} {gender} {theme}...")
-    prompt = f"あなたはプロのアナリストです。{age}{gender}向けに、{theme}についての2026年3月の最新記事をMarkdown形式で書いてください。政治家マップへの言及も含めてください。"
+    print(f"Generating for: {age} {gender} {theme}...")
+    prompt = f"あなたはプロのアナリストです。{age}{gender}向けに、{theme}についての2026年3月の最新記事を1500字以上のMarkdown形式で書いてください。"
+    
     try:
-        response = model.generate_content(prompt)
+        # 最新の生成命令
+        response = client.models.generate_content(
+            model=MODEL_ID,
+            contents=prompt
+        )
+        
         path = f"sites/{age}/{gender}/{theme}"
         os.makedirs(path, exist_ok=True)
         with open(f"{path}/index.md", "w", encoding="utf-8") as f:
             f.write(response.text)
-        print("✅ Success")
+        print("✅ Success!")
         return True
     except Exception as e:
         print(f"❌ Error: {e}")
@@ -32,5 +37,11 @@ if __name__ == "__main__":
     for a in ages:
         for g in genders:
             for t in themes:
-                generate(a, g, t)
-                time.sleep(5)
+                # 記事を作成
+                success = generate(a, g, t)
+                
+                # 💡 根本解決のポイント：
+                # 無料枠の制限を避けるため、1記事ごとに40秒間しっかり休みます。
+                # これにより、60記事を数時間かけて確実に完走させます。
+                print("Waiting 40 seconds for safety...")
+                time.sleep(40)
