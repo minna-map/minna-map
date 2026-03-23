@@ -9,9 +9,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: { python-version: '3.10' }
-      - name: Install Tools # ここで「包丁（ライブラリ）」を用意します
-        run: pip install -U google-generativeai
+        with: { python-version: '3.11' } # 2026年の推奨バージョンへ
+      - name: Install Latest SDK
+        run: pip install -U google-genai # 最新の道具を導入
       - name: Run Generator
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -21,5 +21,5 @@ jobs:
           git config --global user.name "Analyst-Bot"
           git config --global user.email "bot@example.com"
           git add .
-          git commit -m "Fixed ModuleNotFoundError" || exit 0
+          git commit -m "Updated to Modern SDK" || exit 0
           git push
