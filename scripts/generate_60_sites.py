@@ -1,41 +1,24 @@
 import os
 import google.generativeai as genai
-import time
 
-# API Key Setting
-genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+# カギの読み込み
+api_key = os.environ.get("GEMINI_API_KEY")
+print(f"Key exists: {api_key is not None}") # カギがあるか確認
 
-# 最新の安定した名前で呼び出します
-model = genai.GenerativeModel('gemini-1.5-flash')
-
-# 60 Patterns
-ages = ["10s", "20s", "30s", "40s", "50s", "60s"]
-genders = ["male", "female"]
-themes = ["finance", "law", "admin", "politics", "lifestyle"]
-
-def generate(age, gender, theme):
-    print(f"Working on: {age} {gender} {theme}...")
-    prompt = f"Write a professional blog article for {age} {gender} about {theme} in 2026. Use Japanese language. Format: Markdown."
+if api_key:
+    genai.configure(api_key=api_key)
     try:
-        # AIにお話を作ってもらいます
-        response = model.generate_content(prompt)
+        # 接続テスト：利用可能なAIの名前をリストアップする
+        print("Testing connection...")
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                print(f"Found Model: {m.name}")
         
-        path = f"sites/{age}/{gender}/{theme}"
-        os.makedirs(path, exist_ok=True)
-        
-        with open(f"{path}/index.md", "w", encoding="utf-8") as f:
-            f.write(response.text)
-        print("Success!")
-        return True
+        # 1つだけ実行テスト
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        response = model.generate_content("Hello")
+        print("AI Response Success!")
     except Exception as e:
-        # もしエラーが出たら内容を教えてもらいます
-        print(f"Error details: {e}")
-        return False
-
-if __name__ == "__main__":
-    for a in ages:
-        for g in genders:
-            for t in themes:
-                generate(a, g, t)
-                # Geminiが疲れないように5秒お休みします
-                time.sleep(5)
+        print(f"Fatal Error: {e}")
+else:
+    print("Error: GEMINI_API_KEY is empty!")
