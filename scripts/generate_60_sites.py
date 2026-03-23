@@ -5,10 +5,10 @@ import time
 # API Key Setting
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 
-# Use the most stable model name
+# Use the stable model name
 model = genai.GenerativeModel('gemini-1.5-flash')
 
-# Patterns
+# 60 Patterns
 ages = ["10s", "20s", "30s", "40s", "50s", "60s"]
 genders = ["male", "female"]
 themes = ["finance", "law", "admin", "politics", "lifestyle"]
