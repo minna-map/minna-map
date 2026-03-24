@@ -2,24 +2,51 @@ import os
 import time
 from google import genai
 
-# 1. 最新のクライアント設定
+# 1. クライアント設定
 client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 
-# 無料枠で最も安定しているモデルを指定
-MODEL_ID = "gemini-1.5-flash" 
+def find_working_model():
+    """あなたのカギで「今、本当に動く」モデルを自動で見つける"""
+    print("--- Model Discovery Start ---")
+    # 2026年の主要モデル候補
+    candidates = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"]
+    
+    for model_id in candidates:
+        try:
+            print(f"Testing {model_id}...")
+            # 実際に1文字生成させてテスト
+            client.models.generate_content(model=model_id, contents="test")
+            print(f"✅ Found! Using: {model_id}")
+            return model_id
+        except Exception as e:
+            print(f"❌ {model_id} is not available. (Error: {e.code if hasattr(e, 'code') else 'Unknown'})")
+            continue
+    
+    # 候補が全滅した場合、リストから直接取得を試みる
+    try:
+        for m in client.models.list():
+            if "generateContent" in m.supported_methods:
+                print(f"✅ Fallback Found: {m.name}")
+                return m.name
+    except:
+        pass
+        
+    return "gemini-1.5-flash" # 最終手段
+
+# 2. 使えるモデルを決定
+WORKING_MODEL = find_working_model()
 
 ages = ["10s", "20s", "30s", "40s", "50s", "60s"]
 genders = ["male", "female"]
 themes = ["finance", "law", "admin", "politics", "lifestyle"]
 
 def generate(age, gender, theme):
-    print(f"Generating for: {age} {gender} {theme}...")
-    prompt = f"あなたはプロのアナリストです。{age}{gender}向けに、{theme}についての2026年3月の最新記事を1500字以上のMarkdown形式で書いてください。"
+    print(f"Generating: {age} {gender} {theme}...")
+    prompt = f"あなたはプロのアナリストです。{age}{gender}向けに、{theme}についての2026年3月の最新記事を書いてください。"
     
     try:
-        # 最新の生成命令
         response = client.models.generate_content(
-            model=MODEL_ID,
+            model=WORKING_MODEL,
             contents=prompt
         )
         
@@ -27,21 +54,18 @@ def generate(age, gender, theme):
         os.makedirs(path, exist_ok=True)
         with open(f"{path}/index.md", "w", encoding="utf-8") as f:
             f.write(response.text)
-        print("✅ Success!")
+        print(f"✅ Success with {WORKING_MODEL}")
         return True
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"❌ Fatal Error: {e}")
         return False
 
 if __name__ == "__main__":
+    print(f"Target Model confirmed: {WORKING_MODEL}")
     for a in ages:
         for g in genders:
             for t in themes:
-                # 記事を作成
-                success = generate(a, g, t)
-                
-                # 💡 根本解決のポイント：
-                # 無料枠の制限を避けるため、1記事ごとに40秒間しっかり休みます。
-                # これにより、60記事を数時間かけて確実に完走させます。
-                print("Waiting 40 seconds for safety...")
+                generate(a, g, t)
+                # 429エラーを避けるため、40秒しっかり休みます
+                print("Waiting 40s for Quota limit...")
                 time.sleep(40)
